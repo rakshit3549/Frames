@@ -2,9 +2,12 @@ require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
 const ImageKit = require('imagekit');
+const cors = require('cors');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
+
+app.use(cors());
 
 // — ImageKit Setup —
 const imagekit = new ImageKit({
@@ -50,16 +53,13 @@ app.get('/images', async (req, res) => {
 });
 
 // — Weather API Setup —
-const WEATHER_API_URL = process.env.WEATHER_API_URL;
-const WEATHER_API_KEY = process.env.WEATHER_API_KEY;
-
 app.get('/weather', async (req, res) => {
   try {
-    const response = await axios.get(WEATHER_API_URL, {
+    const response = await axios.get(process.env.WEATHER_API_URL, {
       params: {
         lat: 52.52,
         lon: 13.40,
-        appid: WEATHER_API_KEY,
+        appid: process.env.WEATHER_API_KEY,
         units: 'metric'
       }
     });
