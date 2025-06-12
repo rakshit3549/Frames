@@ -1,25 +1,114 @@
-require("dotenv").config();
-const express = require("express");
-const ImageKit = require("imagekit");
-const cors = require("cors");
+require('dotenv').config();
+const express = require('express');
+const axios = require('axios');
+const ImageKit = require('imagekit');
+const cors = require('cors');
 
 const app = express();
-const port = process.env.PORT || 8080;
+const PORT = process.env.PORT || 8080;
 
-app.use(cors()); // Allow frontend requests from browser
+app.use(cors());
 
+// — ImageKit Setup —
 const imagekit = new ImageKit({
   publicKey: process.env.PUBLICKEY,
   privateKey: process.env.PRIVATEKEY,
-  urlEndpoint: process.env.URLENDPOINT 
+  urlEndpoint: process.env.URLENDPOINT
+});
+
+String.prototype.toCamelCase = function() {
+    return this.charAt(0).toUpperCase() + this.slice(1);
+};
+
+// Route to get ImageKit auth parameters
+app.get('/auth', (req, res) => {
+  try {
+    const authParams = imagekit.getAuthenticationParameters();
+    res.json(authParams);
+  } catch (err) {
+    res.status(500).json({ error: 'Auth failure' });
+  }
+});
+
+// Route to list all ImageKit files (returns URLs)
+app.get('/images', async (req, res) => {
+  try {
+    const response = await imagekit.listFiles({ fileType:'image' });
+
+    const files = response
+      .map(file => {
+        let orientation = 0 ;
+        if (file.width > file.height) orientation = 1;
+        return {
+          filePath: process.env.URLENDPOINT + file.filePath,
+          orientation: orientation,
+        };
+      });
+
+    res.json(files);
+  } catch (err) {
+    console.error('ImageKit list error:', err);
+    res.status(500).json({ error: 'Unable to fetch images' });
+  }
+});
+
+// — Weather API Setup —
+const WEATHER_API_URL = process.env.WEATHER_API_URL;
+const WEATHER_API_KEY = process.env.WEATHER_API_KEY;
+
+app.get('/weather', async (req, res) => {
+  try {
+    const response = await axios.get(WEATHER_API_URL, {
+      params: {
+        lat: 52.52,
+        lon: 13.40,
+        appid: WEATHER_API_KEY,
+        units: 'metric'
+      }
+    });
+
+    res.json({
+          temp: response.data.main.temp + ' °C',
+          description: response.data.weather[0].description.toCamelCase()
+        });
+
+  } catch (error) {
+    console.error("Weather API error:", error.message);
+    res.status(500).json({ error: 'Unable to fetch weather data' });
+  }
+});
+
+// — Start Server —
+app.listen(PORT, () => {
+  console.log(`Server running at http://localhost:${PORT}`);
 });
 
 
-app.get("/auth", (req, res) => {
-  const authParams = imagekit.getAuthenticationParameters();
-  res.json(authParams);
-});
 
-app.listen(port, () => {
-  console.log(`Auth server listening at http://localhost:${port}`);
-});
+
+
+// require("dotenv").config();
+// const express = require("express");
+// const ImageKit = require("imagekit");
+// const cors = require("cors");
+
+// const app = express();
+// const port = process.env.PORT || 8080;
+
+// app.use(cors()); // Allow frontend requests from browser
+
+// const imagekit = new ImageKit({
+//   publicKey: process.env.PUBLICKEY,
+//   privateKey: process.env.PRIVATEKEY,
+//   urlEndpoint: process.env.URLENDPOINT 
+// });
+
+
+// app.get("/auth", (req, res) => {
+//   const authParams = imagekit.getAuthenticationParameters();
+//   res.json(authParams);
+// });
+
+// app.listen(port, () => {
+//   console.log(`Auth server listening at http://localhost:${port}`);
+// });
