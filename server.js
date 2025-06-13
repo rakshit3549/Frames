@@ -20,7 +20,7 @@ String.prototype.toCamelCase = function() {
     return this.charAt(0).toUpperCase() + this.slice(1);
 };
 
-// Route to get ImageKit auth parameters
+// Route for ImageKit auth parameters
 app.get('/auth', (req, res) => {
   try {
     const authParams = imagekit.getAuthenticationParameters();
@@ -33,19 +33,17 @@ app.get('/auth', (req, res) => {
 // Route to list all ImageKit files (returns URLs)
 app.get('/images', async (req, res) => {
   try {
-    const response = await imagekit.listFiles({ fileType:'image' });
+    const response = await imagekit.listFiles({ fileType:'image',path:'Frame' });
 
     const files = response
       .map(file => {
-        let orientation = 0 ;
-        if (file.width > file.height) orientation = 1;
         return {
           filePath: process.env.URLENDPOINT + file.filePath,
-          orientation: orientation,
         };
       });
 
     res.json(files);
+
   } catch (err) {
     console.error('ImageKit list error:', err);
     res.status(500).json({ error: 'Unable to fetch images' });
