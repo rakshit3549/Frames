@@ -16,8 +16,8 @@ const imagekit = new ImageKit({
   urlEndpoint: process.env.URLENDPOINT
 });
 
-String.prototype.toCamelCase = function() {
-    return this.charAt(0).toUpperCase() + this.slice(1);
+String.prototype.toCamelCase = function () {
+  return this.charAt(0).toUpperCase() + this.slice(1);
 };
 
 // Route for ImageKit auth parameters
@@ -33,7 +33,7 @@ app.get('/auth', (req, res) => {
 // Route to list all ImageKit files (returns URLs)
 app.get('/images', async (req, res) => {
   try {
-    const response = await imagekit.listFiles({ fileType:'image',path:'Frame' });
+    const response = await imagekit.listFiles({ fileType: 'image', path: 'Frame' });
 
     const files = response
       .map(file => {
@@ -63,13 +63,46 @@ app.get('/weather', async (req, res) => {
     });
 
     res.json({
-          temp: response.data.main.temp + ' °C',
-          description: response.data.weather[0].description.toCamelCase()
-        });
+      temp: response.data.main.temp + ' °C',
+      description: response.data.weather[0].description.toCamelCase()
+    });
 
   } catch (error) {
     console.error("Weather API error:", error.message);
     res.status(500).json({ error: 'Unable to fetch weather data' });
+  }
+});
+
+
+app.get('/data', async (req, res) => {
+  try {
+    // Step 1: Get weather data
+    const weatherRes = await axios.get(process.env.WEATHER_API_URL, {
+      params: {
+        lat: 52.52,
+        lon: 13.40,
+        appid: process.env.WEATHER_API_KEY,
+        units: 'metric'
+      }
+    });
+
+    const temp = weatherRes.data.main.temp + ' °C';
+    const description = weatherRes.data.weather[0].description.toCamelCase();
+
+    // Step 2: Get image files
+    const files = await imagekit.listFiles({ fileType: 'image', path: 'Frame' });
+
+    // Step 3: Combine each image with weather data
+    const result = files.map(file => ({
+      filePath: process.env.URLENDPOINT + file.filePath,
+      temp,
+      description
+    }));
+
+    res.json(result);
+  } catch (err) {
+    console.error('Data route error:', err.message);
+    res.status(500).json({ error: 'Unable to fetch combined data' });
   }
 });
 
