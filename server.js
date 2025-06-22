@@ -47,12 +47,9 @@ app.get('/data', async (req, res) => {
       return res.status(404).json({ error: 'No images found in folder' });
     }
 
-    // Step 3: Pick a random image
-    const randomFile = files[Math.floor(Math.random() * files.length)];
-
-    // Step 4: Send single image and weather data
+    // Step 3: Send image URLs and weather data
     const result = {
-      filePath: randomFile.secure_url,
+      filePath: files.map(file => file.secure_url),
       temp,
       description
     };
