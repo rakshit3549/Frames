@@ -9,10 +9,15 @@ const PORT = process.env.PORT || 8080;
 
 app.use(cors());
 app.use(express.urlencoded({ extended: true }));
+app.use(express.static('public'));
 
 String.prototype.toCamelCase = function () {
   return this.charAt(0).toUpperCase() + this.slice(1);
 };
+
+app.get('/', async (req, res) => {
+  res.json('😎');
+});
 
 app.get('/data', async (req, res) => {
   try {
@@ -123,6 +128,11 @@ app.delete('/delete', async (req, res) => {
     console.error('Delete error:', err.message);
     res.status(500).json({ error: 'Failed to delete image' });
   }
+});
+
+// Optional direct route
+app.get('/frame', (req, res) => {
+  res.sendFile(__dirname + '/public/index_frame.html');
 });
 
 
