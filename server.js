@@ -2,11 +2,13 @@ require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
+const FormData = require('form-data');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
 
 app.use(cors());
+app.use(express.urlencoded({ extended: true }));
 
 String.prototype.toCamelCase = function () {
   return this.charAt(0).toUpperCase() + this.slice(1);
@@ -60,6 +62,69 @@ app.get('/data', async (req, res) => {
     res.status(500).json({ error: 'Unable to fetch data' });
   }
 });
+
+app.get('/list', async (req, res) => {
+  try {
+    const cloudinaryRes = await axios.get(
+      `https://api.cloudinary.com/v1_1/${process.env.CLOUDINARY_CLOUD_NAME}/resources/by_asset_folder`,
+      {
+        auth: {
+          username: process.env.CLOUDINARY_API_KEY,
+          password: process.env.CLOUDINARY_API_SECRET
+        },
+        params: {
+          asset_folder: 'Frame'
+        }
+      }
+    );
+
+    const images = cloudinaryRes.data.resources.map(file => ({
+      public_id: file.public_id,
+      created_at: file.created_at,
+      secure_url: file.secure_url
+    }));
+
+    res.json(images);
+  } catch (err) {
+    console.error('List route error:', err.message);
+    res.status(500).json({ error: 'Failed to fetch image list' });
+  }
+});
+
+app.delete('/delete', async (req, res) => {
+  try {
+    const { public_id } = req.query;
+
+    if (!public_id) {
+      return res.status(400).json({ error: 'public_id is required' });
+    }
+
+    const form = new FormData();
+    form.append('public_ids[]', public_id); // can append more if deleting multiple
+
+    const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+    const apiKey = process.env.CLOUDINARY_API_KEY;
+    const apiSecret = process.env.CLOUDINARY_API_SECRET;
+
+    const response = await axios.delete(
+      `https://api.cloudinary.com/v1_1/${cloudName}/resources/image/upload/`,
+      {
+        auth: {
+          username: apiKey,
+          password: apiSecret
+        },
+        data: form,
+        headers: form.getHeaders()
+      }
+    );
+
+    res.json({ message: 'Image deleted successfully', result: response.data });
+  } catch (err) {
+    console.error('Delete error:', err.message);
+    res.status(500).json({ error: 'Failed to delete image' });
+  }
+});
+
 
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
